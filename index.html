@@ -631,7 +631,7 @@ function renderExecLB(data){
     const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
     return`<div class="lb-row">
       <div class="lb-rank ${rankClass}">${i+1}</div>
-      <div class="lb-info"><div class="lb-name">${e.staffName||e.staffId}</div><div class="lb-id">${e.staffId} · ${e.city||''}</div></div>
+      <div class="lb-info"><div class="lb-name">${e.staffName||resolveName(e.staffId)}</div><div class="lb-id">${e.staffId} · ${e.city||''}</div></div>
       <div><div class="lb-val">${e.collected||0}</div><div class="lb-val-lbl">collected</div></div>
     </div>`;
   }).join('');
@@ -645,7 +645,7 @@ function renderTCProgress(data){
     const pct=Math.min(100,Math.round(((t.closures||0)/30)*100));
     return`<div class="progress-wrap" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;box-shadow:var(--shadow-sm);">
       <div class="progress-header">
-        <div><div class="progress-name">${t.staffName||t.staffId}</div>
+        <div><div class="progress-name">${t.staffName||resolveName(t.staffId)}</div>
           <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">${t.staffId} &nbsp;·&nbsp; Calls: ${t.calls||0} &nbsp;·&nbsp; Appts: ${t.appts||0}</div>
         </div>
         <div style="text-align:right;">
@@ -686,7 +686,7 @@ function renderTCCards(data){
   el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
   ${data.map(t=>`
     <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow-sm);text-align:center;">
-      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;">${t.staffName||t.staffId}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;">${t.staffName||resolveName(t.staffId)}</div>
       <div style="font-family:var(--font-head);font-size:26px;font-weight:800;color:var(--accent);">${t.closures||0}</div>
       <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">closures</div>
       <div style="display:flex;justify-content:center;gap:10px;font-size:11px;color:var(--text2);">
@@ -768,19 +768,32 @@ function demoTrend(){
   const c=[4,7,9,11,8,14,14],cl=[52,61,48,73,58,82,76];
   return days.map((d,i)=>({date:d,collected:c[i],calls:cl[i],appts:Math.round(cl[i]*.24)}));
 }
+/* ── STAFF NAME MAP v1.0.1 — maps Staff ID to real display name ── */
+const STAFF_NAMES = {
+  'OW_001':'Stalin Pandian',
+  'AD_001':'Arun',
+  'SV_001':'Gawtham',
+  'TC_001':'Jamuna',  'TC_002':'Sudha',   'TC_003':'Sankari',
+  'TC_004':'Sabitha', 'TC_005':'Nithya',  'TC_006':'Priya',
+  'TC_007':'Jenifer',
+  'EX_001':'Suresh',  'EX_002':'Santhosh','EX_003':'Nandha',
+  'EX_004':'Mano',    'EX_005':'Ganesh',
+};
+function resolveName(staffId){ return STAFF_NAMES[staffId] || staffId; }
+
 function demoExecs(){return[
-  {staffId:'EX_001',staffName:'Executive 1',city:'CBE',collected:24},
-  {staffId:'EX_002',staffName:'Executive 2',city:'CBE',collected:19},
-  {staffId:'EX_003',staffName:'Executive 3',city:'CBE',collected:14},
-  {staffId:'EX_004',staffName:'Executive 4',city:'CBE',collected:10},
-  {staffId:'EX_005',staffName:'Executive 5',city:'CBE',collected:8},
+  {staffId:'EX_001',staffName:'Suresh',city:'CBE',collected:24},
+  {staffId:'EX_002',staffName:'Santhosh',city:'CBE',collected:19},
+  {staffId:'EX_003',staffName:'Nandha',city:'CBE',collected:14},
+  {staffId:'EX_004',staffName:'Mano',city:'CBE',collected:10},
+  {staffId:'EX_005',staffName:'Ganesh',city:'CBE',collected:8},
 ];}
 function demoTCs(){return[
-  {staffId:'TC_001',staffName:'Telecaller 1',closures:18,calls:112,appts:26},
-  {staffId:'TC_002',staffName:'Telecaller 2',closures:16,calls:98,appts:22},
-  {staffId:'TC_003',staffName:'Telecaller 3',closures:14,calls:87,appts:19},
-  {staffId:'TC_004',staffName:'Telecaller 4',closures:11,calls:74,appts:15},
-  {staffId:'TC_005',staffName:'Telecaller 5',closures:8, calls:56,appts:11},
+  {staffId:'TC_001',staffName:'Jamuna', closures:18,calls:112,appts:26},
+  {staffId:'TC_002',staffName:'Sudha',  closures:16,calls:98, appts:22},
+  {staffId:'TC_003',staffName:'Sankari',closures:14,calls:87, appts:19},
+  {staffId:'TC_004',staffName:'Sabitha',closures:11,calls:74, appts:15},
+  {staffId:'TC_005',staffName:'Nithya', closures:8, calls:56, appts:11},
 ];}
 function demoAreas(){return[
   {area:'RS Puram',collected:18,executiveStaffId:'EX_001'},
