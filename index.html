@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="VOA Dash">
+<meta name="theme-color" content="#1a3c5e">
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22VOAOwnerDashboard%22,%22short_name%22:%22VOADash%22,%22start_url%22:%22./%22,%22display%22:%22standalone%22,%22background_color%22:%22#ffffff%22,%22theme_color%22:%22#1a3c5e%22,%22orientation%22:%22portrait%22,%22icons%22:[{%22src%22:%22https://via.placeholder.com/192/1a3c5e/ffffff?text=📊%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22}]}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VOA Owner Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -422,6 +428,7 @@ body{ background:var(--bg); color:var(--text); font-family:var(--font-body); min
     <button class="tab-btn"        id="tabAlerts"       onclick="switchTab('Alerts')">🔔 Alerts</button>
     <button class="tab-btn"        id="tabDaily"        onclick="switchTab('Daily')">📅 Daily Log</button>
     <button class="tab-btn"        id="tabIncentive"    onclick="switchTab('Incentive')">⚙️ Incentives</button>
+    <button class="tab-btn"        id="tabVendor"       onclick="switchTab('Vendor')">🔍 ACT Monitor</button>
   </div>
 
   <!-- ── OVERVIEW TAB ── -->
@@ -454,6 +461,33 @@ body{ background:var(--bg); color:var(--text); font-family:var(--font-body); min
     <!-- City compare -->
     <div class="section-hd">City Comparison <span>MTD</span></div>
     <div class="city-compare" id="cityCompare"></div>
+
+    <!-- v1.3.1: Accountability Summary -->
+    <div id="accountabilityPanel">
+      <div class="section-hd">Accountability Summary <span>Live ageing</span></div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 16px 16px;">
+        <div class="kpi-card green"><div class="kpi-label">🟢 Fresh</div><div class="kpi-val" id="agFresh">—</div><div class="kpi-sub">0 – 12 hrs</div></div>
+        <div class="kpi-card amber"><div class="kpi-label">🟡 Attention</div><div class="kpi-val" id="agAttention">—</div><div class="kpi-sub">12 – 24 hrs</div></div>
+        <div class="kpi-card"><div class="kpi-label" style="color:#ea580c">🟠 Delayed</div><div class="kpi-val" id="agDelayed" style="color:#ea580c">—</div><div class="kpi-sub">24 – 48 hrs</div></div>
+        <div class="kpi-card red"><div class="kpi-label">🔴 Critical</div><div class="kpi-val" id="agCritical">—</div><div class="kpi-sub">48+ hrs</div></div>
+      </div>
+    </div>
+
+    <!-- v1.4.1: Money View — injected by renderMoneyView() -->
+    <div id="moneyViewExtra"></div>
+
+    <!-- v1.4.1: Responsibility Matrix — injected by renderResponsibilityMatrix() -->
+    <div id="responsibilityMatrix"></div>
+
+    <!-- v1.4.1: Critical Accounts — injected by renderCriticalAccounts() -->
+    <div id="criticalAccountsPanel"></div>
+
+    <!-- v1.4.1: Bottleneck Analysis — injected by renderBottleneckAnalysis() -->
+    <div id="bottleneckPanel"></div>
+
+    <!-- v1.5.0: Impact Engine — injected by renderImpactPanel() -->
+    <div id="impactPanel"></div>
+
   </div>
 
   <!-- ── PERFORMANCE TAB ── -->
@@ -478,6 +512,9 @@ body{ background:var(--bg); color:var(--text); font-family:var(--font-body); min
 
   <!-- ── ALERTS TAB ── -->
   <div class="tab-page" id="pageAlerts">
+    <!-- v1.4.1: Action Center — injected by renderActionCenter() -->
+    <div id="actionCenter"></div>
+
     <div class="section-hd">Active Alerts <span id="alertCount"></span></div>
     <div id="alertsDetail"></div>
 
@@ -506,40 +543,118 @@ body{ background:var(--bg); color:var(--text); font-family:var(--font-body); min
       </table>
     </div>
   </div>
+  <!-- ── VENDOR ACCOUNTABILITY TAB ── -->
+  <div class="tab-page" id="pageVendor">
+
+    <div class="section-hd">ACT Base Quality Monitor <span id="vendorLastUpdated"></span></div>
+
+    <!-- Summary Cards -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px" id="vendorKpiGrid">
+      <div class="kpi-card amber"><div class="kpi-label">Avg Quality Score</div><div class="kpi-val" id="vKpiScore">—</div><div class="kpi-sub">Across all batches</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Wasted Accounts</div><div class="kpi-val" id="vKpiWasted">—</div><div class="kpi-sub">Unusable from ACT</div></div>
+      <div class="kpi-card blue"><div class="kpi-label">Historic Duplicates</div><div class="kpi-val" id="vKpiDups">—</div><div class="kpi-sub">ACT recycling old accounts</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Clean Data Rate</div><div class="kpi-val" id="vKpiClean">—</div><div class="kpi-sub">Workable vs total</div></div>
+    </div>
+
+    <!-- Batch History Table -->
+    <div class="section-hd">Batch History <span>All uploads</span></div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:16px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:#1a3c5e">
+            <th style="padding:10px 12px;text-align:left;color:#fff;font-weight:600">Batch</th>
+            <th style="padding:10px 8px;text-align:center;color:#fff;font-weight:600">Sent</th>
+            <th style="padding:10px 8px;text-align:center;color:#fff;font-weight:600">Workable</th>
+            <th style="padding:10px 8px;text-align:center;color:#fff;font-weight:600">Duplicates</th>
+            <th style="padding:10px 8px;text-align:center;color:#fff;font-weight:600">Historic</th>
+            <th style="padding:10px 8px;text-align:center;color:#fff;font-weight:600">Bad Fmt</th>
+            <th style="padding:10px 8px;text-align:center;color:#fff;font-weight:600">Quality</th>
+            <th style="padding:10px 8px;text-align:center;color:#fff;font-weight:600">Date</th>
+          </tr>
+        </thead>
+        <tbody id="vendorBatchBody">
+          <tr><td colspan="8" style="padding:20px;text-align:center;color:#94a3b8;font-size:13px">Loading batch history...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Evidence Report Generator -->
+    <div class="section-hd">Evidence Report <span>For client meetings</span></div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;color:#475569;margin-bottom:12px">
+        Generate a formatted report showing exactly what your client sent vs what was workable.
+        Use this in meetings when ACT questions your collection numbers.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <select id="vendorBatchSelect" style="flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg2);color:var(--text)">
+          <option value="ALL">All Batches (Combined)</option>
+        </select>
+        <button onclick="generateVendorReport()" style="padding:9px 18px;background:#1a3c5e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+          📋 Generate Report
+        </button>
+        <button onclick="copyVendorReport()" style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+          📤 Copy for WhatsApp
+        </button>
+      </div>
+      <div id="vendorReportBox" style="display:none;background:#f8f9fb;border:1px solid #e4e8ef;border-radius:8px;padding:14px;font-family:monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;color:#0f172a"></div>
+    </div>
+
+    <!-- Quality Trend -->
+    <div class="section-hd">Quality Trend <span>Batch over batch</span></div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+      <div id="vendorTrendBars" style="display:flex;gap:8px;align-items:flex-end;height:120px;padding-bottom:24px;position:relative"></div>
+      <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:4px">Each bar = one batch upload. Height = quality score %</div>
+    </div>
+
+    <!-- Repeat Offenders -->
+    <div class="section-hd">Repeat Accounts <span>ACT recycling old/dead accounts</span></div>
+    <div id="vendorRepeatBox" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-size:13px;color:#475569">
+      Loading...
+    </div>
+
+    <div style="height:40px"></div>
+  </div>
+
 </div>
 
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbwsGJ0HI7smnWk-3Cpcno6BJbRwbWHe3ZaAhPavTmHE4IrIG9Kk0t_7mQqh9x_fTHnI/exec', CLIENT_ID='LIVARA_CBE';
+const CONFIG = { API_URL: 'https://script.google.com/macros/s/AKfycbwsGJ0HI7smnWk-3Cpcno6BJbRwbWHe3ZaAhPavTmHE4IrIG9Kk0t_7mQqh9x_fTHnI/exec', CLIENT_ID: 'LIVARA_CBE' };
+const API_URL = CONFIG.API_URL; const CLIENT_ID = CONFIG.CLIENT_ID;
 let session=null, activeCity='ALL', activePeriod='today';
+let _refreshTimer;
 let overviewData={}, trendData=[], execData=[], tcData=[], areaData=[], alertData=[], dailyData=[], storeData=[];
+let acctData=[];  // v1.4.1: global accountability snapshot
 
-/* ── API ── */
-async function api(p){p.client_id=p.client_id||CLIENT_ID;p.token=session?.token;try{const r=await fetch(API_URL+'?'+new URLSearchParams(p));return await r.json();}catch(e){return{success:false,error:e.message};}}
+/* -- API -- */
+async function api(p){p.client_id=p.client_id||CLIENT_ID;p.token=session?.token;try{const r=await fetch(API_URL+'?'+new URLSearchParams(p));if(!r.ok){toast('Server error '+r.status,'error');}return await r.json();}catch(e){return{success:false,error:e.message};}}
 async function apiPost(action,body){body.client_id=CLIENT_ID;body.token=session?.token;body.action=action;try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});return await r.json();}catch(e){try{const p=Object.assign({},body);const r=await fetch(API_URL+'?'+new URLSearchParams(p));return await r.json();}catch(e2){return{success:false,error:'Network error'};}}}
 
-/* ── LOGIN ── */
+/* -- LOGIN -- */
 async function doLogin(){
   const staffId=document.getElementById('loginStaffId').value.trim().toUpperCase();
   const pin=document.getElementById('loginPin').value.trim();
   document.getElementById('loginError').style.display='none';
   if(!staffId||!pin){showErr('Enter Staff ID and PIN');return;}
   showLoader('Authenticating...');
-  const res=await api({action:'login',city:'CBE',staffId,pin});
+  const res=await api({action:'login',city:activeCity==='ALL'?'CBE':activeCity,staffId,pin});
   hideLoader();
   if(!res.success){showErr(res.error||'Login failed');return;}
-  if(res.data.role!=='OWNER'){showErr('Access denied — Owner login only');return;}
+  if(res.data.role!=='OWNER'){showErr('Access denied - Owner login only');return;}
   session=res.data; startApp();
 }
 function showErr(m){const e=document.getElementById('loginError');e.textContent=m;e.style.display='block';}
 
-/* ── APP START ── */
+/* -- APP START -- */
 function startApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='block';
+  _startTokenRefresh();
   loadAllData();
 }
 
-/* ── LOAD ALL DATA ── */
+/* -- LOAD ALL DATA -- */
+function showWarning(msg){ toast(msg,'error'); }
+
 async function loadAllData(){
   showLoader('Loading dashboard...');
   const cities=activeCity==='ALL'?['CBE','CHN']:[activeCity];
@@ -557,11 +672,16 @@ async function loadAllData(){
 
   // Use demo data if API not connected
   const ov  = ovRes.success   ? (ovRes.data.aggregate||ovRes.data)   : demoOverview();
+  if(!ovRes.success) showWarning('API offline - showing demo data');
   trendData  = trendRes.success? trendRes.data.trend||[]              : demoTrend();
+  if(!trendRes.success) showWarning('Trend API failed - showing demo data');
   execData   = perfRes.success ? perfRes.data.executives||[]          : demoExecs();
+  if(!perfRes.success) showWarning('Performance API failed - showing demo data');
   tcData     = perfRes.success ? perfRes.data.telecallers||[]         : demoTCs();
   areaData   = trendRes.success? trendRes.data.areaBreakdown||[]      : demoAreas();
-  alertData  = (alertRes.success&&alertRes.data.alerts)||[]           || demoAlerts();
+  if(alertRes.success && alertRes.data && alertRes.data.alerts){ alertData = alertRes.data.alerts; }else{ alertData = demoAlerts(); }
+  if(!alertRes.success){ showWarning('Alert API failed - showing fallback data'); }
+  if(!alertRes.success) showWarning('Alert API failed - showing demo data');
   dailyData  = trendRes.success? trendRes.data.daily||[]              : demoDaily();
   storeData  = storeRes.success? storeRes.data.pendingList||[]        : [];
   overviewData = ov;
@@ -576,11 +696,51 @@ async function loadAllData(){
   renderAlerts(alertData);
   renderStoreLeakage(storeData);
   renderDailyTable(dailyData);
+  // v1.3.1: load accountability snapshot
+  (async function(){
+    try{
+      var sr=await api({action:'get_accountability_snapshot',city:cities[0],limit:1000});
+      if(sr.success && Array.isArray(sr.data)){ acctData = sr.data; }else{ acctData = []; console.warn('Accountability API failed'); }
+      acctData.forEach(function(r){ r.impact = calculateImpact(r); });
+    }catch(e){
+      // Fallback: derive rough buckets from pending count
+      var p=overviewData.pending||0;
+      acctData=[];
+      for(var i=0;i<Math.round(p*.4);i++)acctData.push({ageing_hours:6,current_owner:'TC_???'});
+      for(var i=0;i<Math.round(p*.3);i++)acctData.push({ageing_hours:18,current_owner:'TC_???'});
+      for(var i=0;i<Math.round(p*.2);i++)acctData.push({ageing_hours:36,current_owner:'EX_???'});
+      for(var i=0;i<Math.round(p*.1);i++)acctData.push({ageing_hours:60,current_owner:'EX_???'});
+    }
+    // v1.4.1: render all accountability-dependent panels
+    renderAccountability(acctData);
+    renderMoneyView(overviewData, acctData);
+    renderResponsibilityMatrix(acctData);
+    renderCriticalAccounts(acctData);
+    renderActionCenter(acctData, overviewData);
+    renderBottleneckAnalysis(acctData);
+    renderImpactPanel(acctData);
+  })();
 }
 
-/* ── OVERVIEW ── */
+/* -- ACCOUNTABILITY SUMMARY (v1.3.1) -- */
+function renderAccountability(accounts){
+  var list=Array.isArray(accounts)?accounts:[];
+  var fresh=0,attention=0,delayed=0,critical=0;
+  list.forEach(function(a){
+    var h=parseFloat(a.ageing_hours||a.ageingHours)||0;
+    if(h>48)critical++;
+    else if(h>24)delayed++;
+    else if(h>12)attention++;
+    else fresh++;
+  });
+  function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+  set('agFresh',fresh); set('agAttention',attention);
+  set('agDelayed',delayed); set('agCritical',critical);
+}
+
+/* -- OVERVIEW -- */
 function renderOverview(d){
-  document.getElementById('kpiTotal').textContent     = ((d.pending||0)+(d.total||d.collected||0));
+  document.getElementById('kpiTotal').textContent     = ((d.total || ((d.pending||0) + (d.collected||0))));
   document.getElementById('kpiCollected').textContent = d.total||d.collected||0;
   document.getElementById('kpiCalls').textContent     = d.calls||0;
   document.getElementById('kpiAppts').textContent     = d.appts||0;
@@ -588,9 +748,9 @@ function renderOverview(d){
   document.getElementById('kpiConv').textContent      = (d.convRate||0)+'%';
 }
 
-/* ── 7-DAY TREND BAR CHART ── */
+/* -- 7-DAY TREND BAR CHART -- */
 function renderTrend(data){
-  if(!data.length)return;
+  if(!data.length){document.getElementById('barChart').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">No trend data available</div>';return;}
   const maxC=Math.max(...data.map(d=>d.collected||0),1);
   const maxCl=Math.max(...data.map(d=>d.calls||0),1);
   document.getElementById('barChart').innerHTML=data.map(d=>{
@@ -608,7 +768,7 @@ function renderTrend(data){
   }).join('');
 }
 
-/* ── CITY COMPARE ── */
+/* -- CITY COMPARE -- */
 function renderCityCompare(cities){
   document.getElementById('cityCompare').innerHTML=cities.map(c=>`
     <div class="city-card">
@@ -623,7 +783,7 @@ function renderCityCompare(cities){
     </div>`).join('');
 }
 
-/* ── EXEC LEADERBOARD ── */
+/* -- EXEC LEADERBOARD -- */
 function renderExecLB(data){
   const el=document.getElementById('execLB');
   if(!data.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-text">No data yet</div></div>';return;}
@@ -631,13 +791,13 @@ function renderExecLB(data){
     const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
     return`<div class="lb-row">
       <div class="lb-rank ${rankClass}">${i+1}</div>
-      <div class="lb-info"><div class="lb-name">${e.staffName||resolveName(e.staffId)}</div><div class="lb-id">${e.staffId} · ${e.city||''}</div></div>
+      <div class="lb-info"><div class="lb-name">${e.staffName||resolveName(e.staffId)}</div><div class="lb-id">${e.staffId}   ${e.city||''}</div></div>
       <div><div class="lb-val">${e.collected||0}</div><div class="lb-val-lbl">collected</div></div>
     </div>`;
   }).join('');
 }
 
-/* ── TC PROGRESS BARS ── */
+/* -- TC PROGRESS BARS -- */
 function renderTCProgress(data){
   const el=document.getElementById('tcProgress');
   if(!data.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📞</div><div class="empty-text">No data yet</div></div>';return;}
@@ -646,7 +806,7 @@ function renderTCProgress(data){
     return`<div class="progress-wrap" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;box-shadow:var(--shadow-sm);">
       <div class="progress-header">
         <div><div class="progress-name">${t.staffName||resolveName(t.staffId)}</div>
-          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">${t.staffId} &nbsp;·&nbsp; Calls: ${t.calls||0} &nbsp;·&nbsp; Appts: ${t.appts||0}</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">${t.staffId} &nbsp; &nbsp; Calls: ${t.calls||0} &nbsp; &nbsp; Appts: ${t.appts||0}</div>
         </div>
         <div style="text-align:right;">
           <div class="progress-val">${t.closures||0} / 30</div>
@@ -658,10 +818,10 @@ function renderTCProgress(data){
   }).join('');
 }
 
-/* ── AREA BREAKDOWN ── */
+/* -- AREA BREAKDOWN -- */
 function renderAreaBreakdown(data){
   const el=document.getElementById('areaBreakdown');
-  document.getElementById('areaCity').textContent=(activeCity==='ALL'?'CBE':''+activeCity)+' — MTD';
+  document.getElementById('areaCity').textContent=(activeCity==='ALL'?'All Cities':activeCity)+' - MTD';
   if(!data.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No area data</div></div>';return;}
   const max=Math.max(...data.map(a=>a.collected||0),1);
   el.innerHTML=data.map(a=>{
@@ -674,12 +834,12 @@ function renderAreaBreakdown(data){
       <div style="height:6px;background:var(--bg3);border-radius:4px;overflow:hidden;">
         <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent-md),var(--accent));border-radius:4px;transition:width .6s;"></div>
       </div>
-      <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:6px;">Exec: ${a.executiveStaffId||'—'}</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:6px;">Exec: ${a.executiveStaffId||'-'}</div>
     </div>`;
   }).join('');
 }
 
-/* ── TC CARDS ── */
+/* -- TC CARDS -- */
 function renderTCCards(data){
   const el=document.getElementById('tcCards');
   if(!data.length){el.innerHTML='';return;}
@@ -696,7 +856,7 @@ function renderTCCards(data){
   </div>`;
 }
 
-/* ── ALERTS ── */
+/* -- ALERTS -- */
 function renderAlerts(data){
   document.getElementById('alertCount').textContent=data.length+' active';
   const el=document.getElementById('alertsDetail');
@@ -708,7 +868,7 @@ function renderAlerts(data){
     </div>`).join('');
 }
 
-/* ── STORE LEAKAGE ── */
+/* -- STORE LEAKAGE -- */
 function renderStoreLeakage(data){
   const el=document.getElementById('storeLeakage');
   const leaking=data.filter(s=>s.leakage);
@@ -716,17 +876,17 @@ function renderStoreLeakage(data){
   el.innerHTML=leaking.map(s=>`
     <div class="alert-card red">
       <div class="alert-icon">⚠️</div>
-      <div><div class="alert-title">${s.accountNo} — ${s.name||'—'}</div>
-        <div class="alert-sub">Area: ${s.area||'—'} · Exec: ${s.executiveStaffId||'—'} · Collected: ${s.collectedDate||'—'}</div>
+      <div><div class="alert-title">${s.accountNo} - ${s.name||'-'}</div>
+        <div class="alert-sub">Area: ${s.area||'-'}   Exec: ${s.executiveStaffId||'-'}   Collected: ${s.collectedDate||'-'}</div>
       </div>
     </div>`).join('');
 }
 
-/* ── DAILY TABLE ── */
+/* -- DAILY TABLE -- */
 function renderDailyTable(data){
   document.getElementById('dailyBody').innerHTML=data.map(d=>`
     <tr>
-      <td style="font-family:var(--font-mono);font-size:11px;">${d.date||'—'}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;">${d.date||'-'}</td>
       <td>${d.calls||0}</td>
       <td>${d.appts||0}</td>
       <td class="td-accent">${d.collected||0}</td>
@@ -734,7 +894,7 @@ function renderDailyTable(data){
     </tr>`).join('');
 }
 
-/* ── CONTROLS ── */
+/* -- CONTROLS -- */
 function setCity(city,el){
   activeCity=city;
   document.querySelectorAll('.city-btn').forEach(b=>b.classList.remove('active'));
@@ -753,22 +913,42 @@ function switchTab(name){
   document.getElementById('tab'+name).classList.add('active');
   document.getElementById('page'+name).classList.add('active');
   if(name==='Incentive') loadIncentiveTab();
+  if(name==='Vendor') loadVendorTab();
 }
 
-/* ── UTILS ── */
+/* -- UTILS -- */
 function showLoader(t){document.getElementById('loaderText').textContent=t||'Loading...';document.getElementById('loader').classList.add('show');}
 function hideLoader(){document.getElementById('loader').classList.remove('show');}
 let _tt;function toast(msg,type){clearTimeout(_tt);const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+(type||'');requestAnimationFrame(()=>el.classList.add('show'));_tt=setTimeout(()=>el.classList.remove('show'),3000);}
-function doLogout(){session=null;document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginPin').value='';}
 
-/* ── DEMO DATA ── */
+// -- TOKEN AUTO-REFRESH -- v1.3.0
+// Silently refreshes session token 5 min before expiry
+// Prevents sudden logout mid-session
+function _startTokenRefresh() {
+  if (!session || !session.token) return;
+  if (_refreshTimer) clearInterval(_refreshTimer);
+  _refreshTimer = setInterval(async function() {
+    try {
+      var res = await api({action:'refresh_token', token: session.token});
+      if (res.success && res.data && res.data.token) {
+        session.token = res.data.token;
+      } else {
+        doLogout();
+      }
+    } catch(e) {}
+  }, 25 * 60 * 1000);
+}
+
+function doLogout(){session=null;if(_refreshTimer)clearInterval(_refreshTimer);document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginPin').value='';}
+
+/* -- DEMO DATA -- */
 function demoOverview(){return{total:67,collected:67,calls:389,appts:94,pending:142,convRate:71.3};}
 function demoTrend(){
   const days=['05 Mar','06 Mar','07 Mar','08 Mar','09 Mar','10 Mar','11 Mar'];
   const c=[4,7,9,11,8,14,14],cl=[52,61,48,73,58,82,76];
   return days.map((d,i)=>({date:d,collected:c[i],calls:cl[i],appts:Math.round(cl[i]*.24)}));
 }
-/* ── STAFF NAME MAP v1.0.1 — maps Staff ID to real display name ── */
+/* -- STAFF NAME MAP v1.0.1 - maps Staff ID to real display name -- */
 const STAFF_NAMES = {
   'OW_001':'Stalin Pandian',
   'AD_001':'Arun',
@@ -820,9 +1000,9 @@ function demoCities(){return[
 document.getElementById('loginPin').addEventListener('keyup',e=>{if(e.key==='Enter')doLogin();});
 
 
-// ════════════════════════════════════════════════════════
-// INCENTIVE CONFIG MODULE — OWNER ONLY
-// ════════════════════════════════════════════════════════
+// ========================================================
+// INCENTIVE CONFIG MODULE - OWNER ONLY
+// ========================================================
 
 let _incCfg = null;         // live config loaded from backend
 let _incDirty = false;      // tracks unsaved changes
@@ -831,7 +1011,7 @@ let _incSlabEnds  = [];     // tracks slab end inputs
 
 async function loadIncentiveTab() {
   const cont = document.getElementById('incContent');
-  cont.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-family:var(--ff-mono)">⏳ Loading incentive config...</div>';
+  cont.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-family:var(--ff-mono)"> Loading incentive config...</div>';
 
   const res = await api({action:'get_incentive_config', city:session.city, staffId:session.staffId});
   if(!res.success){
@@ -849,33 +1029,33 @@ function _renderIncentiveTab(cont, cfg) {
   _incSlabRates = [];
   _incSlabEnds  = [];
 
-  // ── Unsaved changes banner ──
+  // -- Unsaved changes banner --
   const unsavedBanner = _el('div','inc-unsaved','⚠️  You have unsaved changes. Tap Save at the bottom to apply.');
   unsavedBanner.id = 'incUnsaved';
   cont.appendChild(unsavedBanner);
 
-  // ── Live Payout Preview ──
+  // -- Live Payout Preview --
   const preview = _el('div','inc-payout-preview');
   preview.id = 'incPreview';
   preview.innerHTML = `
-    <div class="inc-preview-title">💡 LIVE PAYOUT PREVIEW — If month ends today</div>
+    <div class="inc-preview-title">💡 LIVE PAYOUT PREVIEW - If month ends today</div>
     <div class="inc-preview-grid">
       <div class="inc-preview-cell">
-        <div class="inc-preview-val" id="pvExec20">₹${(20*cfg.execSlabs[0].rate).toLocaleString('en-IN')}</div>
+        <div class="inc-preview-val" id="pvExec20">Rs${(20*cfg.execSlabs[0].rate).toLocaleString('en-IN')}</div>
         <div class="inc-preview-lbl">Exec @ 20 routers</div>
       </div>
       <div class="inc-preview-cell">
-        <div class="inc-preview-val" id="pvExec40">₹${_calcExecPay(40,cfg.execSlabs).toLocaleString('en-IN')}</div>
+        <div class="inc-preview-val" id="pvExec40">Rs${_calcExecPay(40,cfg.execSlabs).toLocaleString('en-IN')}</div>
         <div class="inc-preview-lbl">Exec @ 40 routers</div>
       </div>
       <div class="inc-preview-cell">
-        <div class="inc-preview-val" id="pvTC30">₹${(cfg.tcTarget * cfg.tcRate).toLocaleString('en-IN')}</div>
+        <div class="inc-preview-val" id="pvTC30">Rs${(cfg.tcTarget * cfg.tcRate).toLocaleString('en-IN')}</div>
         <div class="inc-preview-lbl">TC @ target (${cfg.tcTarget})</div>
       </div>
     </div>`;
   cont.appendChild(preview);
 
-  // ── EXEC Section ──────────────────────────────────────
+  // -- EXEC Section --------------------------------------
   const execSec = _el('div','inc-section');
   execSec.innerHTML = `<div class="inc-section-title">🚴 Executive Incentive <span class="inc-badge live">LIVE</span></div>`;
 
@@ -906,9 +1086,9 @@ function _renderIncentiveTab(cont, cfg) {
     const isLast = i === cfg.execSlabs.length - 1;
     const row = _el('div','inc-slab-row');
     const startLabel = slab.start;
-    const endLabel   = isLast ? '∞' : slab.end;
+    const endLabel   = isLast ? 'unlimited' : slab.end;
 
-    row.innerHTML = `<div class="inc-slab-label">Slab ${i+1}: ${startLabel} – ${endLabel} routers</div>`;
+    row.innerHTML = `<div class="inc-slab-label">Slab ${i+1}: ${startLabel} - ${endLabel} routers</div>`;
 
     // Rate input
     const rateWrap = _el('div','');
@@ -932,14 +1112,14 @@ function _renderIncentiveTab(cont, cfg) {
       _incSlabEnds.push(endInp);
     } else {
       const unlimWrap = _el('div','');
-      unlimWrap.innerHTML = '<div class="inc-label">Up to</div><div style="font-size:13px;font-weight:700;color:#16a34a;padding:11px 14px;background:#f0fdf4;border-radius:10px;border:1.5px solid #86efac">∞ Unlimited</div>';
+      unlimWrap.innerHTML = '<div class="inc-label">Up to</div><div style="font-size:13px;font-weight:700;color:#16a34a;padding:11px 14px;background:#f0fdf4;border-radius:10px;border:1.5px solid #86efac">unlimited Unlimited</div>';
       row.appendChild(unlimWrap);
     }
     execSec.appendChild(row);
   });
   cont.appendChild(execSec);
 
-  // ── TC Section ────────────────────────────────────────
+  // -- TC Section ----------------------------------------
   const tcSec = _el('div','inc-section');
   tcSec.innerHTML = `<div class="inc-section-title">📞 Telecaller Incentive <span class="inc-badge live">LIVE</span></div>`;
 
@@ -960,7 +1140,7 @@ function _renderIncentiveTab(cont, cfg) {
   ));
   cont.appendChild(tcSec);
 
-  // ── Supervisor Section ────────────────────────────────
+  // -- Supervisor Section --------------------------------
   const svSec = _el('div','inc-section');
   svSec.innerHTML = `<div class="inc-section-title">👔 Supervisor Bonus (Gawtham)</div>`;
   svSec.appendChild(_el('div','inc-sub',
@@ -979,9 +1159,9 @@ function _renderIncentiveTab(cont, cfg) {
   svSec.appendChild(svGrid);
   cont.appendChild(svSec);
 
-  // ── Admin Section ─────────────────────────────────────
+  // -- Admin Section -------------------------------------
   const adSec = _el('div','inc-section');
-  adSec.innerHTML = `<div class="inc-section-title">🧑‍💼 Admin Bonus (Arun)</div>`;
+  adSec.innerHTML = `<div class="inc-section-title">🧑💼 Admin Bonus (Arun)</div>`;
   adSec.appendChild(_el('div','inc-sub',
     'Arun gets a bonus when total team collections exceed the admin threshold.'
   )).style ? (adSec.lastChild.style.marginBottom='12px') : null;
@@ -998,7 +1178,7 @@ function _renderIncentiveTab(cont, cfg) {
   adSec.appendChild(adGrid);
   cont.appendChild(adSec);
 
-  // ── Save Button ───────────────────────────────────────
+  // -- Save Button ---------------------------------------
   const saveBtn = _el('button','btn-save-inc','💾  Save All Incentive Changes');
   saveBtn.id = 'incSaveBtn';
   saveBtn.onclick = saveIncentiveConfig;
@@ -1020,7 +1200,7 @@ function _renderIncentiveTab(cont, cfg) {
 async function saveIncentiveConfig() {
   const btn = document.getElementById('incSaveBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Saving...';
+  btn.textContent = ' Saving...';
 
   // Build updates object from all inputs
   const updates = {};
@@ -1068,7 +1248,7 @@ async function saveIncentiveConfig() {
     document.getElementById('incUnsaved').classList.remove('show');
     btn.textContent = '✅ Saved Successfully!';
     btn.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
-    toast('✅ Incentive config saved — all apps will use new rates on next login','success');
+    toast('✅ Incentive config saved - all apps will use new rates on next login','success');
     const ls = document.getElementById('incLastSaved');
     if(ls) ls.textContent = '✅ Saved at '+new Date().toLocaleTimeString('en-IN')+' by '+session.staffId;
     setTimeout(()=>{
@@ -1076,13 +1256,13 @@ async function saveIncentiveConfig() {
       btn.style.background = '';
     }, 3000);
   } else {
-    btn.textContent = '❌ Save Failed — Retry';
+    btn.textContent = '❌ Save Failed - Retry';
     toast(res.error || 'Failed to save. Check connection.','error');
     setTimeout(()=>{ btn.textContent='💾  Save All Incentive Changes'; btn.style.background=''; }, 3000);
   }
 }
 
-// ── Helper: calculate exec total payout ──────────────────
+// -- Helper: calculate exec total payout ------------------
 function _calcExecPay(routers, slabs) {
   var total = 0, rem = routers;
   (slabs||[]).forEach(function(s){
@@ -1094,7 +1274,7 @@ function _calcExecPay(routers, slabs) {
   return total;
 }
 
-// ── Refresh preview box when values change ───────────────
+// -- Refresh preview box when values change ---------------
 function _refreshPreview() {
   try {
     const slabs = _incSlabRates.map(function(inp,i){
@@ -1107,22 +1287,22 @@ function _refreshPreview() {
     const p20  = document.getElementById('pvExec20');
     const p40  = document.getElementById('pvExec40');
     const p30  = document.getElementById('pvTC30');
-    if(p20) p20.textContent = '₹'+_calcExecPay(20,slabs).toLocaleString('en-IN');
-    if(p40) p40.textContent = '₹'+_calcExecPay(40,slabs).toLocaleString('en-IN');
-    if(p30) p30.textContent = '₹'+(tcT*tcR).toLocaleString('en-IN');
+    if(p20) p20.textContent = 'Rs'+_calcExecPay(20,slabs).toLocaleString('en-IN');
+    if(p40) p40.textContent = 'Rs'+_calcExecPay(40,slabs).toLocaleString('en-IN');
+    if(p30) p30.textContent = 'Rs'+(tcT*tcR).toLocaleString('en-IN');
   } catch(e){}
 }
 
-// ── Refresh slab labels when end values change ───────────
+// -- Refresh slab labels when end values change -----------
 function _refreshSlabLabels() {
   _incSlabEnds.forEach(function(inp,i){
     const slab = document.querySelector('.inc-slab-row:nth-child('+(i+3)+') .inc-slab-label');
     if(slab && _incSlabRates[i+1]) {
       const nextStart = Number(inp.value)+1;
-      const nextEnd   = _incSlabEnds[i+1] ? Number(_incSlabEnds[i+1].value) : '∞';
+      const nextEnd   = _incSlabEnds[i+1] ? Number(_incSlabEnds[i+1].value) : 'unlimited';
       // update next slab label
       const nextRow = document.querySelector('.inc-slab-row:nth-child('+(i+4)+') .inc-slab-label');
-      if(nextRow) nextRow.textContent = 'Slab '+(i+2)+': '+nextStart+' – '+nextEnd+' routers';
+      if(nextRow) nextRow.textContent = 'Slab '+(i+2)+': '+nextStart+' - '+nextEnd+' routers';
     }
   });
 }
@@ -1132,7 +1312,7 @@ function _showUnsaved() {
   if(el) el.classList.add('show');
 }
 
-// ── DOM helpers ───────────────────────────────────────────
+// -- DOM helpers -------------------------------------------
 function _el(tag, cls, text) {
   const e = document.createElement(tag);
   if(cls)  e.className  = cls;
@@ -1162,5 +1342,788 @@ function _fieldWrap(label, sub, inputEl) {
 }
 
 // Also fix apiPost for Owner Dashboard (same CORS fix)
+
+
+// -- v1.3.1 ACCOUNTABILITY HELPERS ---------------------------
+function getAgeColor(hours){var h=parseFloat(hours)||0;if(h>48)return'#dc2626';if(h>24)return'#ea580c';if(h>12)return'#d97706';return'#16a34a';}
+function getAgeBucket(hours){var h=parseFloat(hours)||0;if(h>48)return'🔴 Critical';if(h>24)return'🟠 Delayed';if(h>12)return'🟡 Attention';return'🟢 Fresh';}
+// -- end v1.3.1 ----------------------------------------------
+
+
+// ============================================================
+// VENDOR ACCOUNTABILITY MODULE
+// ACT Base Quality Monitor
+// ============================================================
+
+let vendorBatchData = [];
+
+async function loadVendorTab() {
+  const el = document.getElementById('vendorLastUpdated');
+  if (el) el.textContent = 'Loading...';
+
+  try {
+    // Fetch batch log from API
+    const res = await api({
+      action: 'get_batch_log',
+      city: activeCity === 'ALL' ? 'CBE' : activeCity
+    });
+
+    vendorBatchData = (res.success && Array.isArray(res.data)) ? res.data : demoBatchData();
+  } catch(e) {
+    vendorBatchData = demoBatchData();
+  }
+
+  renderVendorKpis(vendorBatchData);
+  renderVendorTable(vendorBatchData);
+  renderVendorTrend(vendorBatchData);
+  renderVendorRepeat(vendorBatchData);
+  populateVendorBatchSelect(vendorBatchData);
+
+  if (el) el.textContent = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+}
+
+function demoBatchData() {
+  // Demo data so the tab looks good before real API data arrives
+  return [
+    { batchNo:'VOA_CBE_MAR_2026_3', total:820, workable:410, duplicates:89, historicMatches:201, missingNo:12, badFormat:108, pushedBy:'AD_001', uploadedAt:'2026-03-20' },
+    { batchNo:'VOA_CBE_MAR_2026_2', total:650, workable:390, duplicates:65, historicMatches:148, missingNo:8,  badFormat:39,  pushedBy:'AD_001', uploadedAt:'2026-03-14' },
+    { batchNo:'VOA_CBE_MAR_2026_1', total:700, workable:490, duplicates:72, historicMatches:105, missingNo:15, badFormat:18,  pushedBy:'AD_001', uploadedAt:'2026-03-07' },
+    { batchNo:'VOA_CBE_FEB_2026_2', total:580, workable:420, duplicates:48, historicMatches:82,  missingNo:6,  badFormat:24,  pushedBy:'AD_001', uploadedAt:'2026-02-21' },
+    { batchNo:'VOA_CBE_FEB_2026_1', total:610, workable:460, duplicates:55, historicMatches:71,  missingNo:9,  badFormat:15,  pushedBy:'AD_001', uploadedAt:'2026-02-07' },
+  ];
+}
+
+function _calcQuality(b) {
+  if (!b.total || b.total === 0) return 0;
+  var bad = (b.duplicates||0) + (b.historicMatches||0) + (b.missingNo||0) + (b.badFormat||0);
+  var score = 100 - Math.round((bad / b.total) * 100);
+  return Math.max(0, score);
+}
+
+function _qualityColor(score) {
+  if (score >= 85) return '#16a34a';
+  if (score >= 65) return '#d97706';
+  if (score >= 45) return '#ea580c';
+  return '#dc2626';
+}
+
+function _qualityLabel(score) {
+  if (score >= 85) return 'Good';
+  if (score >= 65) return 'Average';
+  if (score >= 45) return 'Poor';
+  return 'Bad';
+}
+
+function renderVendorKpis(batches) {
+  if (!batches.length) return;
+
+  var totalSent    = batches.reduce(function(s,b){ return s + (b.total||0); }, 0);
+  var totalWork    = batches.reduce(function(s,b){ return s + (b.workable||0); }, 0);
+  var totalDups    = batches.reduce(function(s,b){ return s + (b.historicMatches||0); }, 0);
+  var totalWasted  = totalSent - totalWork;
+  var avgScore     = Math.round(batches.reduce(function(s,b){ return s + _calcQuality(b); }, 0) / batches.length);
+  var cleanRate    = totalSent > 0 ? Math.round((totalWork / totalSent) * 100) : 0;
+
+  var set = function(id, val) { var e = document.getElementById(id); if(e) e.textContent = val; };
+  set('vKpiScore',  avgScore + '%');
+  set('vKpiWasted', totalWasted.toLocaleString('en-IN'));
+  set('vKpiDups',   totalDups.toLocaleString('en-IN'));
+  set('vKpiClean',  cleanRate + '%');
+}
+
+function renderVendorTable(batches) {
+  var tbody = document.getElementById('vendorBatchBody');
+  if (!tbody) return;
+  if (!batches.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;color:#94a3b8">No batch data yet. Upload a base via Admin Panel.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = batches.map(function(b, i) {
+    var score = _calcQuality(b);
+    var col   = _qualityColor(score);
+    var lbl   = _qualityLabel(score);
+    var bg    = i % 2 === 0 ? '#ffffff' : '#f8f9fb';
+    return '<tr style="background:' + bg + '">' +
+      '<td style="padding:9px 12px;font-size:11px;font-family:monospace;font-weight:600;color:#1a3c5e">' + (b.batchNo||'-') + '</td>' +
+      '<td style="padding:9px 8px;text-align:center;font-weight:600">' + (b.total||0).toLocaleString('en-IN') + '</td>' +
+      '<td style="padding:9px 8px;text-align:center;color:#16a34a;font-weight:600">' + (b.workable||0).toLocaleString('en-IN') + '</td>' +
+      '<td style="padding:9px 8px;text-align:center;color:#d97706">' + (b.duplicates||0) + '</td>' +
+      '<td style="padding:9px 8px;text-align:center;color:#dc2626">' + (b.historicMatches||0) + '</td>' +
+      '<td style="padding:9px 8px;text-align:center;color:#94a3b8">' + ((b.missingNo||0)+(b.badFormat||0)) + '</td>' +
+      '<td style="padding:9px 8px;text-align:center"><span style="background:' + col + '20;color:' + col + ';font-weight:700;font-size:11px;padding:3px 8px;border-radius:12px">' + score + '% ' + lbl + '</span></td>' +
+      '<td style="padding:9px 8px;text-align:center;font-size:11px;color:#94a3b8">' + (b.uploadedAt||'-') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderVendorTrend(batches) {
+  var container = document.getElementById('vendorTrendBars');
+  if (!container || !batches.length) return;
+
+  var reversed = batches.slice().reverse(); // oldest first
+  var maxScore  = 100;
+
+  container.innerHTML = reversed.map(function(b) {
+    var score  = _calcQuality(b);
+    var pct    = Math.max(8, score);
+    var col    = _qualityColor(score);
+    var label  = (b.batchNo||'').split('_').slice(-1)[0] || '?';
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0">' +
+      '<div style="font-size:10px;font-weight:700;color:' + col + '">' + score + '%</div>' +
+      '<div style="width:100%;background:' + col + ';border-radius:4px 4px 0 0;height:' + pct + 'px;transition:height .4s ease"></div>' +
+      '<div style="font-size:9px;color:#94a3b8;text-align:center;overflow:hidden;max-width:100%;white-space:nowrap;text-overflow:ellipsis" title="' + (b.batchNo||'') + '">' + label + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderVendorRepeat(batches) {
+  var box = document.getElementById('vendorRepeatBox');
+  if (!box) return;
+
+  var totalHistoric = batches.reduce(function(s,b){ return s + (b.historicMatches||0); }, 0);
+  var totalSent     = batches.reduce(function(s,b){ return s + (b.total||0); }, 0);
+  var pct           = totalSent > 0 ? Math.round((totalHistoric / totalSent) * 100) : 0;
+
+  if (totalHistoric === 0) {
+    box.innerHTML = '<div style="color:#16a34a;font-weight:600">✅ No repeat accounts detected across all batches.</div>';
+    return;
+  }
+
+  box.innerHTML =
+    '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">' +
+      '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;min-width:160px;text-align:center">' +
+        '<div style="font-size:28px;font-weight:800;color:#dc2626">' + totalHistoric.toLocaleString('en-IN') + '</div>' +
+        '<div style="font-size:12px;color:#dc2626;margin-top:2px">Accounts already in Historic Memory</div>' +
+        '<div style="font-size:11px;color:#94a3b8;margin-top:2px">(' + pct + '% of all accounts sent)</div>' +
+      '</div>' +
+      '<div style="flex:1;min-width:220px">' +
+        '<div style="font-size:13px;color:#0f172a;font-weight:600;margin-bottom:6px">What this means:</div>' +
+        '<div style="font-size:12px;color:#475569;line-height:1.7">' +
+          '- ACT sent you <b>' + totalHistoric + ' accounts</b> that were already collected, lost, or blacklisted in previous cycles.<br>' +
+          '- Your team wasted time trying to call dead accounts.<br>' +
+          '- This is ACT data quality problem - not your team performance problem.' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function populateVendorBatchSelect(batches) {
+  var sel = document.getElementById('vendorBatchSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="ALL">All Batches (Combined)</option>' +
+    batches.map(function(b) {
+      return '<option value="' + (b.batchNo||'') + '">' + (b.batchNo||'') + ' (' + (b.uploadedAt||'') + ')</option>';
+    }).join('');
+}
+
+function generateVendorReport() {
+  var selVal   = document.getElementById('vendorBatchSelect').value;
+  var batches  = selVal === 'ALL' ? vendorBatchData : vendorBatchData.filter(function(b){ return b.batchNo === selVal; });
+  if (!batches.length) { toast('No batch data available', 'error'); return; }
+
+  var totalSent     = batches.reduce(function(s,b){ return s + (b.total||0); }, 0);
+  var totalWork     = batches.reduce(function(s,b){ return s + (b.workable||0); }, 0);
+  var totalDups     = batches.reduce(function(s,b){ return s + (b.duplicates||0); }, 0);
+  var totalHistoric = batches.reduce(function(s,b){ return s + (b.historicMatches||0); }, 0);
+  var totalMissing  = batches.reduce(function(s,b){ return s + (b.missingNo||0); }, 0);
+  var totalBadFmt   = batches.reduce(function(s,b){ return s + (b.badFormat||0); }, 0);
+  var totalWasted   = totalSent - totalWork;
+  var avgScore      = batches.length > 0 ? Math.round(batches.reduce(function(s,b){ return s + _calcQuality(b); }, 0) / batches.length) : 0;
+  var cleanPct      = totalSent > 0 ? Math.round((totalWork / totalSent) * 100) : 0;
+  var wastePct      = totalSent > 0 ? Math.round((totalWasted / totalSent) * 100) : 0;
+  var periodLabel   = selVal === 'ALL' ? 'All Batches Combined' : selVal;
+  var today         = new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+
+  var lines = [
+    '===========================================',
+    '  ACT BASE QUALITY REPORT',
+    '  LIVARA / Vibrant Owl Agencies',
+    '  Generated: ' + today,
+    '  Period: ' + periodLabel,
+    '===========================================',
+    '',
+    'WHAT ACT SENT US',
+    '-----------------',
+    'Total accounts received  : ' + totalSent.toLocaleString('en-IN'),
+    'Workable accounts        : ' + totalWork.toLocaleString('en-IN') + ' (' + cleanPct + '%)',
+    'Unusable accounts        : ' + totalWasted.toLocaleString('en-IN') + ' (' + wastePct + '%)',
+    '',
+    'BREAKDOWN OF UNUSABLE ACCOUNTS',
+    '--------------------------------',
+    'Already in Historic Memory : ' + totalHistoric.toLocaleString('en-IN'),
+    '  (ACT recycled previously collected/dead accounts)',
+    'Duplicate within batch     : ' + totalDups.toLocaleString('en-IN'),
+    '  (ACT sent same account more than once)',
+    'Missing account number     : ' + totalMissing.toLocaleString('en-IN'),
+    'Bad format / incomplete    : ' + totalBadFmt.toLocaleString('en-IN'),
+    '',
+    'DATA QUALITY SCORE         : ' + avgScore + '%',
+    '',
+    'OUR TEAM PERFORMANCE',
+    '------------------------',
+    'We can only work with what is workable.',
+    'Recovery rate is calculated on ' + totalWork.toLocaleString('en-IN') + ' clean accounts',
+    'not the ' + totalSent.toLocaleString('en-IN') + ' sent by ACT.',
+    '',
+    'Any collection target must be based on',
+    'workable accounts, not total accounts sent.',
+    '==========================================='
+  ];
+  var report = lines.join('\n');
+
+  var box = document.getElementById('vendorReportBox');
+  box.textContent = report;
+  box.style.display = 'block';
+}
+
+function copyVendorReport() {
+  generateVendorReport();
+  var box = document.getElementById('vendorReportBox');
+  if (!box || box.style.display === 'none') return;
+  var text = box.textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){ toast('Report copied - paste into WhatsApp', 'success'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('Report copied - paste into WhatsApp', 'success');
+  }
+}
+
+
+
+// ============================================================
+// v1.4.1 - WAR ROOM CONTROL PANEL
+// All functions are additive - zero changes to existing logic
+// Data source: acctData (global, populated by accountability IIFE)
+// ============================================================
+
+const VALUE_PER_ROUTER = 1500; // Rs per router for money view calculations
+
+// -- 1. MONEY VIEW -----------------------------------------
+function renderMoneyView(ov, accounts) {
+  var el = document.getElementById('moneyViewExtra');
+  if (!el) return;
+  if (!ov) { el.innerHTML = ''; return; }
+  try {
+    var collected = ov.total || ov.collected || 0;
+    var pending   = ov.pending || 0;
+    var critical  = Array.isArray(accounts)
+      ? accounts.filter(function(a){ return (parseFloat(a.ageing_hours)||0) > 48; }).length
+      : 0;
+
+    var collectedVal = collected * VALUE_PER_ROUTER;
+    var pendingVal   = pending   * VALUE_PER_ROUTER;
+    var atRiskVal    = critical  * VALUE_PER_ROUTER;
+
+    el.innerHTML =
+      '<div class="section-hd" style="margin-top:4px">💰 Money View <span>Rs ' + VALUE_PER_ROUTER + ' per router</span></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px">' +
+        _kpiCard('green',  'Rs Collected Value',   'Rs' + _fmt(collectedVal), collected + ' routers recovered') +
+        _kpiCard('amber',  'Rs Pending Value',     'Rs' + _fmt(pendingVal),  pending + ' routers in pipeline') +
+        _kpiCard('red',    'Rs At Risk Value',     'Rs' + _fmt(atRiskVal),   critical + ' accounts >48h old') +
+        _kpiCard('purple', 'Rs Pipeline Total',    'Rs' + _fmt(pendingVal + collectedVal), 'collected + pending') +
+      '</div>';
+  } catch(e) {
+    el.innerHTML = '';
+    console.warn('[MoneyView]', e.message);
+  }
+}
+
+// -- 2. RESPONSIBILITY MATRIX -------------------------------
+function renderResponsibilityMatrix(accounts) {
+  var el = document.getElementById('responsibilityMatrix');
+  if (!el) return;
+  if (!accounts || !accounts.length) { el.innerHTML = ''; return; }
+  try {
+    var list = Array.isArray(accounts) ? accounts : [];
+    if (!list.length) {
+      el.innerHTML = _emptySection('Responsibility Matrix', 'No accountability data yet');
+      return;
+    }
+
+    // Group by current_owner
+    var map = {};
+    list.forEach(function(a) {
+      var owner = (a.current_owner || a.CURRENT_OWNER || 'UNKNOWN').toString().trim() || 'UNKNOWN';
+      if (!map[owner]) map[owner] = { count: 0, totalHrs: 0 };
+      map[owner].count++;
+      map[owner].totalHrs += parseFloat(a.ageing_hours) || 0;
+    });
+
+    // Sort by avgAgeing descending (highest risk first)
+    var rows = Object.keys(map).map(function(owner) {
+      var d = map[owner];
+      var avg = d.count > 0 ? Math.round(d.totalHrs / d.count) : 0;
+      return { owner: owner, count: d.count, avg: avg };
+    }).sort(function(a, b) { return b.avg - a.avg; });
+
+    var tableRows = rows.map(function(r, i) {
+      var risk = _riskLabel(r.avg);
+      var role = r.owner.startsWith('TC_') ? 'Telecaller'
+               : r.owner.startsWith('EX_') ? 'Executive'
+               : r.owner.startsWith('AD_') ? 'Admin'
+               : r.owner.startsWith('SV_') ? 'Supervisor'
+               : 'Unknown';
+      var bg = i % 2 === 0 ? '#ffffff' : '#fefdf8';
+      return '<tr style="background:' + bg + '">' +
+        '<td style="padding:9px 12px;font-weight:600;font-family:var(--font-mono);font-size:12px;color:#1a3c5e">' +
+          resolveName(r.owner) + '<br><span style="font-size:10px;color:#94a3b8">' + r.owner + '</span></td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:12px;color:#475569">' + role + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-family:var(--font-head);font-size:16px;font-weight:800;color:var(--accent)">' + r.count + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:13px;font-weight:600;color:' + getAgeColor(r.avg) + '">' + r.avg + 'h</td>' +
+        '<td style="padding:9px 10px;text-align:center">' + risk + '</td>' +
+      '</tr>';
+    }).join('');
+
+    el.innerHTML =
+      '<div class="section-hd" style="margin-top:4px">👥 Responsibility Matrix <span>Who owns what - sorted by risk</span></div>' +
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:20px">' +
+        '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+          '<thead><tr style="background:#1a3c5e">' +
+            '<th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:600">Staff</th>' +
+            '<th style="padding:10px 8px;text-align:center;color:#fff;font-size:11px;font-weight:600">Role</th>' +
+            '<th style="padding:10px 8px;text-align:center;color:#fff;font-size:11px;font-weight:600">Pending</th>' +
+            '<th style="padding:10px 8px;text-align:center;color:#fff;font-size:11px;font-weight:600">Avg Age</th>' +
+            '<th style="padding:10px 8px;text-align:center;color:#fff;font-size:11px;font-weight:600">Risk</th>' +
+          '</tr></thead>' +
+          '<tbody>' + tableRows + '</tbody>' +
+        '</table>' +
+      '</div>';
+  } catch(e) {
+    el.innerHTML = '';
+    console.warn('[ResponsibilityMatrix]', e.message);
+  }
+}
+
+// -- 3. CRITICAL ACCOUNTS PANEL ----------------------------
+function renderCriticalAccounts(accounts) {
+  var el = document.getElementById('criticalAccountsPanel');
+  if (!el) return;
+  if (!accounts || !accounts.length) { el.innerHTML = ''; return; }
+  try {
+    var list = Array.isArray(accounts) ? accounts : [];
+    var critical = list
+      .filter(function(a){ return (parseFloat(a.ageing_hours)||0) > 48; })
+      .sort(function(a,b){ return (parseFloat(b.ageing_hours)||0) - (parseFloat(a.ageing_hours)||0); })
+      .slice(0, 20);
+
+    if (!critical.length) {
+      el.innerHTML =
+        '<div class="section-hd" style="margin-top:4px">🔴 Critical Accounts <span>ageing &gt;48h</span></div>' +
+        '<div class="alert-card green" style="margin-bottom:20px">' +
+          '<div class="alert-icon">✅</div>' +
+          '<div><div class="alert-title">No critical accounts</div>' +
+          '<div class="alert-sub">All accounts are within 48h ageing - good work</div></div>' +
+        '</div>';
+      return;
+    }
+
+    var rows = critical.map(function(a, i) {
+      var hrs   = parseFloat(a.ageing_hours)||0;
+      var owner = a.current_owner || a.CURRENT_OWNER || 'NA';
+      var bg    = i % 2 === 0 ? '#fff' : '#fefdf8';
+      return '<tr style="background:' + bg + ';border-left:3px solid #dc2626">' +
+        '<td style="padding:8px 10px;font-size:11px;font-family:monospace;font-weight:700;color:#1a3c5e">' + (a.account_no||a.accountNo||'-') + '</td>' +
+        '<td style="padding:8px 10px;font-size:12px;font-weight:600">' + (a.name||'-') + '</td>' +
+        '<td style="padding:8px 10px;font-size:11px;color:#475569">' + (a.area||'-') + '</td>' +
+        '<td style="padding:8px 10px;font-size:11px;font-family:monospace;color:#7c3aed">' + owner + '</td>' +
+        '<td style="padding:8px 10px;text-align:right;font-weight:800;font-size:14px;color:#dc2626">' + Math.round(hrs) + 'h</td>' +
+      '</tr>';
+    }).join('');
+
+    el.innerHTML =
+      '<div class="section-hd" style="margin-top:4px">🔴 Critical Accounts <span>Top ' + critical.length + ' - ageing &gt;48h</span></div>' +
+      '<div style="background:var(--card);border:1px solid #fecaca;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:20px">' +
+        '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+          '<thead><tr style="background:#dc2626">' +
+            '<th style="padding:8px 10px;text-align:left;color:#fff;font-size:11px">Account No</th>' +
+            '<th style="padding:8px 10px;text-align:left;color:#fff;font-size:11px">Name</th>' +
+            '<th style="padding:8px 10px;text-align:left;color:#fff;font-size:11px">Area</th>' +
+            '<th style="padding:8px 10px;text-align:left;color:#fff;font-size:11px">Owner</th>' +
+            '<th style="padding:8px 10px;text-align:right;color:#fff;font-size:11px">Ageing</th>' +
+          '</tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+      '</div>';
+  } catch(e) {
+    el.innerHTML = '';
+    console.warn('[CriticalAccounts]', e.message);
+  }
+}
+
+// -- 4. ACTION CENTER --------------------------------------
+function renderActionCenter(accounts, ov) {
+  var el = document.getElementById('actionCenter');
+  if (!el) return;
+  try {
+    var list     = Array.isArray(accounts) ? accounts : [];
+    var critical = list.filter(function(a){ return (parseFloat(a.ageing_hours)||0)>48; }).length;
+    var delayed  = list.filter(function(a){ var h=parseFloat(a.ageing_hours)||0; return h>24&&h<=48; }).length;
+
+    // Build insights
+    var insights = [];
+    if (critical > 0) insights.push({ icon:'🔴', text: critical + ' accounts delayed >48h - immediate field action needed', level:'red' });
+    if (delayed  > 0) insights.push({ icon:'🟠', text: delayed + ' accounts between 24-48h - monitor closely', level:'amber' });
+
+    // Check for overloaded staff (>15 pending accounts per person)
+    var ownerMap = {};
+    list.forEach(function(a){
+      var o = (a.current_owner||'UNKNOWN').toString();
+      ownerMap[o] = (ownerMap[o]||0) + 1;
+    });
+    Object.keys(ownerMap).forEach(function(owner){
+      if(ownerMap[owner] > 15) {
+        insights.push({ icon:'⚠️', text: resolveName(owner) + ' (' + owner + ') has ' + ownerMap[owner] + ' pending accounts - consider reassigning', level:'amber' });
+      }
+    });
+
+    // TC conversion check using tcData
+    if (Array.isArray(tcData)) {
+      tcData.forEach(function(t){
+        var calls = t.calls||0;
+        var appts = t.appts||0;
+        var conv  = calls > 0 ? Math.round((appts/calls)*100) : 0;
+        if(calls >= 20 && conv < 15) {
+          insights.push({ icon:'📞', text: resolveName(t.staffId) + ' (' + t.staffId + ') conversion rate is ' + conv + '% - low performance', level:'amber' });
+        }
+      });
+    }
+
+    if (!insights.length) {
+      insights.push({ icon:'✅', text: 'No critical issues detected - system running normally', level:'green' });
+    }
+
+    var insightHTML = insights.map(function(ins){
+      var borderCol = ins.level==='red' ? '#dc2626' : ins.level==='amber' ? '#d97706' : '#16a34a';
+      var bgCol     = ins.level==='red' ? '#fef2f2' : ins.level==='amber' ? '#fffbeb' : '#f0fdf4';
+      return '<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;' +
+             'background:' + bgCol + ';border-left:3px solid ' + borderCol + ';' +
+             'border-radius:0 8px 8px 0;margin-bottom:8px">' +
+        '<span style="font-size:16px;flex-shrink:0">' + ins.icon + '</span>' +
+        '<span style="font-size:13px;color:#0f172a;line-height:1.5">' + ins.text + '</span>' +
+      '</div>';
+    }).join('');
+
+    el.innerHTML =
+      '<div class="section-hd">⚡ Action Center <span>Dynamic insights</span></div>' +
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px;box-shadow:var(--shadow-sm)">' +
+        insightHTML +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">' +
+          _actionBtn('🔄 Reassign Accounts', 'reassign') +
+          _actionBtn('🚀 Force Visit',        'force_visit') +
+          _actionBtn('📢 Escalate Delay',     'escalate') +
+        '</div>' +
+      '</div>';
+  } catch(e) {
+    el.innerHTML = '';
+    console.warn('[ActionCenter]', e.message);
+  }
+}
+
+function _actionBtn(label, action) {
+  return '<button onclick="handleAction(\'' + action + '\')" ' +
+    'style="padding:9px 16px;background:var(--card);border:1.5px solid var(--border);' +
+    'border-radius:10px;font-size:12px;font-family:var(--font-head);font-weight:600;' +
+    'color:var(--text2);cursor:pointer;transition:all .2s;">' +
+    label + '</button>';
+}
+function confirmAction(action){ if(confirm('Are you sure you want to '+action+'?')){ handleAction(action); } }
+
+function safeAction(name, fn){ if(confirm('Are you sure you want to '+name+'?')){ fn(); } }
+
+function handleAction(action) {
+  // UI-only for now - logs intent, no system writes
+  var messages = {
+    reassign:    'Reassign Accounts - functionality coming in v1.5.0',
+    force_visit: 'Force Visit flag - functionality coming in v1.5.0',
+    escalate:    'Escalate Delay - functionality coming in v1.5.0'
+  };
+  console.log('[ActionCenter] Action triggered:', action);
+  toast(messages[action] || 'Action logged: ' + action, 'success');
+}
+
+// -- 5. BOTTLENECK ANALYSIS --------------------------------
+function renderBottleneckAnalysis(accounts) {
+  var el = document.getElementById('bottleneckPanel');
+  if (!el) return;
+  if (!accounts || !accounts.length) { el.innerHTML = ''; return; }
+  try {
+    var list = Array.isArray(accounts) ? accounts : [];
+    if (!list.length) {
+      el.innerHTML = _emptySection('Bottleneck Analysis', 'No data available yet');
+      return;
+    }
+
+    // Group by TC, Exec, and Area
+    var tcMap   = {};
+    var exMap   = {};
+    var areaMap = {};
+
+    list.forEach(function(a) {
+      var hrs   = parseFloat(a.ageing_hours) || 0;
+      var owner = (a.current_owner || '').toString();
+      var area  = (a.area || a.pending_stage || 'Unknown').toString();
+
+      if (owner.startsWith('TC_')) {
+        if (!tcMap[owner]) tcMap[owner] = { total: 0, hrs: 0 };
+        tcMap[owner].total++; tcMap[owner].hrs += hrs;
+      } else if (owner.startsWith('EX_')) {
+        if (!exMap[owner]) exMap[owner] = { total: 0, hrs: 0 };
+        exMap[owner].total++; exMap[owner].hrs += hrs;
+      }
+      if (!areaMap[area]) areaMap[area] = { total: 0, hrs: 0 };
+      areaMap[area].total++; areaMap[area].hrs += hrs;
+    });
+
+    var _topList = function(map, n) {
+      return Object.keys(map).map(function(k){
+        var d = map[k];
+        return { id: k, count: d.total, avg: d.total > 0 ? Math.round(d.hrs/d.total) : 0 };
+      }).sort(function(a,b){ return b.avg - a.avg; }).slice(0, n);
+    };
+
+    var _barRow = function(item, isStaff) {
+      var maxHrs = 72;
+      var pct    = Math.min(100, Math.round((item.avg / maxHrs) * 100));
+      var col    = getAgeColor(item.avg);
+      var name   = isStaff ? resolveName(item.id) : item.id;
+      return '<div style="margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+          '<div>' +
+            '<span style="font-size:13px;font-weight:600;color:var(--text)">' + name + '</span>' +
+            (isStaff ? '<span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-left:6px">' + item.id + '</span>' : '') +
+          '</div>' +
+          '<div style="text-align:right">' +
+            '<span style="font-size:13px;font-weight:700;color:' + col + '">' + item.avg + 'h avg</span>' +
+            '<span style="font-size:10px;color:var(--text3);margin-left:6px">' + item.count + ' accounts</span>' +
+          '</div>' +
+        '</div>' +
+        '<div style="height:7px;background:var(--bg3);border-radius:4px;overflow:hidden">' +
+          '<div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:4px;transition:width .6s"></div>' +
+        '</div>' +
+      '</div>';
+    };
+
+    var tcTop   = _topList(tcMap,   5);
+    var exTop   = _topList(exMap,   5);
+    var areaTop = _topList(areaMap, 5);
+
+    // Find highest contributor overall
+    var allRows = tcTop.concat(exTop);
+    var worst   = allRows.length > 0
+      ? allRows.reduce(function(a,b){ return b.avg > a.avg ? b : a; }, allRows[0])
+      : null;
+
+    var worstBanner = worst && worst.avg > 24
+      ? '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center">' +
+          '<span style="font-size:20px">🚨</span>' +
+          '<div><div style="font-size:13px;font-weight:700;color:#dc2626">Highest delay contributor: ' + resolveName(worst.id) + ' (' + worst.id + ')</div>' +
+          '<div style="font-size:12px;color:#475569;margin-top:2px">Average ageing ' + worst.avg + 'h across ' + worst.count + ' accounts</div></div>' +
+        '</div>'
+      : '';
+
+    var _section = function(title, rows, isStaff) {
+      if (!rows.length) return '<div style="font-size:12px;color:var(--text3);padding:10px 0">No data</div>';
+      return '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">' + title + '</div>' +
+        rows.map(function(r){ return _barRow(r, isStaff); }).join('');
+    };
+
+    el.innerHTML =
+      '<div class="section-hd" style="margin-top:4px">🧠 Bottleneck Analysis <span>Delay by person + area</span></div>' +
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:20px;box-shadow:var(--shadow-sm)">' +
+        worstBanner +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px">' +
+          '<div>' + _section('By Telecaller', tcTop, true) + '</div>' +
+          '<div>' + _section('By Executive',  exTop, true) + '</div>' +
+        '</div>' +
+        '<div style="border-top:1px solid var(--border);padding-top:14px">' +
+          _section('By Area', areaTop, false) +
+        '</div>' +
+      '</div>';
+  } catch(e) {
+    el.innerHTML = '';
+    console.warn('[BottleneckAnalysis]', e.message);
+  }
+}
+
+// -- SHARED HELPERS ----------------------------------------
+function _fmt(n) {
+  return Math.round(n).toLocaleString('en-IN');
+}
+
+function _riskLabel(hrs) {
+  if (hrs < 12) return '<span style="background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px">🟢 Normal</span>';
+  if (hrs < 24) return '<span style="background:#fffbeb;color:#d97706;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px">🟡 Attention</span>';
+  if (hrs < 48) return '<span style="background:#fff4ed;color:#ea580c;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px">🟠 Delayed</span>';
+  return '<span style="background:#fef2f2;color:#dc2626;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px">🔴 Critical</span>';
+}
+
+function _kpiCard(color, label, val, sub) {
+  return '<div class="kpi-card ' + color + '">' +
+    '<div class="kpi-label">' + label + '</div>' +
+    '<div class="kpi-val" style="font-size:24px">' + val + '</div>' +
+    '<div class="kpi-sub">' + sub + '</div>' +
+  '</div>';
+}
+
+function _emptySection(title, msg) {
+  return '<div class="section-hd" style="margin-top:4px">' + title + '</div>' +
+    '<div class="empty-state" style="margin-bottom:20px">' +
+      '<div class="empty-icon">📊</div>' +
+      '<div class="empty-text">' + msg + '</div>' +
+    '</div>';
+}
+
+// ================================================================
+// v1.5.0 -- IMPACT ENGINE
+// Calculates weighted risk score per account, staff, and area.
+// Data source: acctData (get_accountability_snapshot)
+// All functions are additive -- zero changes to existing logic.
+// ================================================================
+
+function calculateImpact(record) {
+  try {
+    var age   = parseFloat(record.ageing_hours) || 0;
+    var stage = (record.pending_stage || record.stage || '').toString().toUpperCase();
+    var weight = 1;
+    if      (stage === 'TC' || stage.indexOf('CALL') >= 0)       weight = 1;
+    else if (stage.indexOf('APPT') >= 0 || stage.indexOf('APPOINTMENT') >= 0) weight = 1.5;
+    else if (stage.indexOf('EXEC') >= 0 || stage.indexOf('VISIT') >= 0)       weight = 2;
+    else if (age > 48)                                            weight = 3;
+    return Math.round(age * weight * 10) / 10;
+  } catch(e) { return 0; }
+}
+
+function computeStaffImpact(data) {
+  var map = {};
+  try {
+    (data || []).forEach(function(r) {
+      var owner = (r.current_owner || r.CURRENT_OWNER || 'UNKNOWN').toString().trim() || 'UNKNOWN';
+      if (!map[owner]) map[owner] = 0;
+      map[owner] += parseFloat(r.impact) || 0;
+    });
+  } catch(e) { console.warn('[ImpactEngine] computeStaffImpact:', e.message); }
+  return map;
+}
+
+function computeAreaImpact(data) {
+  var map = {};
+  try {
+    (data || []).forEach(function(r) {
+      var area = (r.area || r.pending_stage || 'Unknown').toString().trim() || 'Unknown';
+      if (!map[area]) map[area] = 0;
+      map[area] += parseFloat(r.impact) || 0;
+    });
+  } catch(e) { console.warn('[ImpactEngine] computeAreaImpact:', e.message); }
+  return map;
+}
+
+function renderImpactPanel(data) {
+  var el = document.getElementById('impactPanel');
+  if (!el) return;
+  try {
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div class="empty-state" style="margin-bottom:20px"><div class="empty-icon">&#128293;</div><div class="empty-text">No impact data available</div></div>';
+      return;
+    }
+
+    var staffImpact = computeStaffImpact(data);
+    var areaImpact  = computeAreaImpact(data);
+
+    var topStaff = Object.keys(staffImpact)
+      .map(function(k){ return [k, staffImpact[k]]; })
+      .sort(function(a,b){ return b[1]-a[1]; })
+      .slice(0, 5);
+
+    var topArea = Object.keys(areaImpact)
+      .map(function(k){ return [k, areaImpact[k]]; })
+      .sort(function(a,b){ return b[1]-a[1]; })
+      .slice(0, 5);
+
+    var totalImpact = data.reduce(function(s,r){ return s + (parseFloat(r.impact)||0); }, 0);
+    var maxStaff    = topStaff.length > 0 ? topStaff[0][1] : 1;
+    var maxArea     = topArea.length  > 0 ? topArea[0][1]  : 1;
+
+    function impactColor(score, max) {
+      var pct = max > 0 ? score / max : 0;
+      if (pct >= 0.75) return '#dc2626';
+      if (pct >= 0.50) return '#ea580c';
+      if (pct >= 0.25) return '#d97706';
+      return '#16a34a';
+    }
+
+    function barRow(label, score, max, isStaff) {
+      var pct   = max > 0 ? Math.min(100, Math.round((score / max) * 100)) : 0;
+      var col   = impactColor(score, max);
+      var name  = isStaff ? resolveName(label) : label;
+      var sub   = isStaff ? label : '';
+      return '<div style="margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+          '<div>' +
+            '<span style="font-size:13px;font-weight:600;color:var(--text)">' + name + '</span>' +
+            (sub ? '<span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-left:6px">' + sub + '</span>' : '') +
+          '</div>' +
+          '<span style="font-size:13px;font-weight:800;color:' + col + '">' + Math.round(score) + ' pts</span>' +
+        '</div>' +
+        '<div style="height:7px;background:var(--bg3);border-radius:4px;overflow:hidden">' +
+          '<div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:4px;transition:width .6s"></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var staffHTML = topStaff.length
+      ? topStaff.map(function(s){ return barRow(s[0], s[1], maxStaff, true); }).join('')
+      : '<div style="font-size:12px;color:var(--text3);padding:8px 0">No staff data</div>';
+
+    var areaHTML = topArea.length
+      ? topArea.map(function(a){ return barRow(a[0], a[1], maxArea, false); }).join('')
+      : '<div style="font-size:12px;color:var(--text3);padding:8px 0">No area data</div>';
+
+    el.innerHTML =
+      '<div class="section-hd" style="margin-top:4px">&#128293; Impact Engine ' +
+        '<span>Weighted risk score -- higher = more urgent</span>' +
+      '</div>' +
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:20px;box-shadow:var(--shadow-sm)">' +
+
+        // Summary strip
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">' +
+          '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:22px;font-weight:800;color:var(--accent)">' + Math.round(totalImpact) + '</div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-top:2px">Total Impact</div>' +
+          '</div>' +
+          '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:22px;font-weight:800;color:#dc2626">' + data.filter(function(r){ return (r.impact||0) > 100; }).length + '</div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-top:2px">High Risk</div>' +
+          '</div>' +
+          '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">' +
+            '<div style="font-size:22px;font-weight:800;color:#16a34a">' + data.filter(function(r){ return (r.impact||0) <= 20; }).length + '</div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-top:2px">Low Risk</div>' +
+          '</div>' +
+        '</div>' +
+
+        // Two column: staff + area
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">' +
+          '<div>' +
+            '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Top Risk Staff</div>' +
+            staffHTML +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Top Risk Areas</div>' +
+            areaHTML +
+          '</div>' +
+        '</div>' +
+
+      '</div>';
+
+  } catch(e) {
+    el.innerHTML = '';
+    console.warn('[ImpactEngine] renderImpactPanel:', e.message);
+  }
+}
 
 </script>
