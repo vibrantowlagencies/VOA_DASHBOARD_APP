@@ -618,6 +618,27 @@ body{ background:var(--bg); color:var(--text); font-family:var(--font-body); min
 </div>
 
 <script>
+// ============================================================
+// FILE    : Owner_Dashboard_v1.5.3.html
+// Version : 1.5.3
+// Updated : 2026-03-22
+// Changes :
+//   v1.5.3 - Session persistence added
+//            - Login session saved to localStorage
+//            - Back button / page refresh no longer logs out
+//            - Token expiry auto-checked on restore
+//            - Logout clears session from localStorage
+//   v1.5.2 - Unified production release
+//            - War Room, Money View, Impact Engine, ACT Monitor included
+//            - 6 Owner Dashboard API alias actions added
+//            - Incentive config fully dynamic — no hardcodes
+//   v1.5.1 - Impact Engine added, alert fallback fixed
+//   v1.5.0 - Impact Engine module added
+//   v1.4.2 - Stability patches, KPI fixes
+//   v1.4.1 - Cooling Pool awareness added
+//   v1.4.0 - Accountability Engine integration
+// ============================================================
+
 const CONFIG = { API_URL: 'https://script.google.com/macros/s/AKfycbwsGJ0HI7smnWk-3Cpcno6BJbRwbWHe3ZaAhPavTmHE4IrIG9Kk0t_7mQqh9x_fTHnI/exec', CLIENT_ID: 'LIVARA_CBE' };
 const API_URL = CONFIG.API_URL; const CLIENT_ID = CONFIG.CLIENT_ID;
 let session=null, activeCity='ALL', activePeriod='today';
@@ -640,7 +661,7 @@ async function doLogin(){
   hideLoader();
   if(!res.success){showErr(res.error||'Login failed');return;}
   if(res.data.role!=='OWNER'){showErr('Access denied - Owner login only');return;}
-  session=res.data; startApp();
+  session=res.data; try{localStorage.setItem("voa_session_owner", JSON.stringify(session));}catch(e){} startApp();
 }
 function showErr(m){const e=document.getElementById('loginError');e.textContent=m;e.style.display='block';}
 
@@ -939,7 +960,7 @@ function _startTokenRefresh() {
   }, 25 * 60 * 1000);
 }
 
-function doLogout(){session=null;if(_refreshTimer)clearInterval(_refreshTimer);document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginPin').value='';}
+function doLogout(){session=null; try{localStorage.removeItem("voa_session_owner");}catch(e){}if(_refreshTimer)clearInterval(_refreshTimer);document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginPin').value='';}
 
 /* -- DEMO DATA -- */
 function demoOverview(){return{total:67,collected:67,calls:389,appts:94,pending:142,convRate:71.3};}
@@ -2126,4 +2147,62 @@ function renderImpactPanel(data) {
   }
 }
 
+
+// ── SESSION RESTORE ─────────────────────────────────────
+// Restore session from localStorage on page load / back navigation
+(function restoreSession() {
+  try {
+    var stored = localStorage.getItem("voa_session_owner");
+    if (!stored) return;
+    var saved = JSON.parse(stored);
+    if (!saved || !saved.token) return;
+
+    // Validate token is not expired (token format: staffId|role|city|clientId|expires)
+    var parts = saved.token.split('|');
+    if (parts.length < 5) { localStorage.removeItem("voa_session_owner"); return; }
+    var expires = parseInt(parts[4]);
+    if (isNaN(expires) || Date.now() > expires) {
+      localStorage.removeItem("voa_session_owner");
+      console.log('[Session] Token expired — showing login');
+      return;
+    }
+
+    // Valid session — restore and skip login
+    session = saved;
+    console.log('[Session] Restored for', session.staffId);
+    if (typeof startApp === 'function') {
+      startApp();
+    } else if (typeof initApp === 'function') {
+      initApp();
+    }
+  } catch(e) {
+    console.warn('[Session] Restore failed:', e.message);
+  }
+})();
+
+// ── SESSION RESTORE ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    var stored = localStorage.getItem("voa_session_owner");
+    if (!stored) return;
+    var saved = JSON.parse(stored);
+    if (!saved || !saved.token) return;
+
+    // Check token expiry
+    var parts = saved.token.split('|');
+    if (parts.length < 5) { localStorage.removeItem("voa_session_owner"); return; }
+    var expires = parseInt(parts[4]);
+    if (isNaN(expires) || Date.now() > expires) {
+      localStorage.removeItem("voa_session_owner");
+      return;
+    }
+
+    // Valid — restore session and skip login
+    session = saved;
+    if (typeof startApp === 'function') startApp();
+    else if (typeof initApp === 'function') initApp();
+  } catch(e) {
+    try { localStorage.removeItem("voa_session_owner"); } catch(e2) {}
+  }
+});
 </script>
